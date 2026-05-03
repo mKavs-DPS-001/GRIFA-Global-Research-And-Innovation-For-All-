@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0B1F3A;
+  --color-primary-light: #1A3A6B;
+  --color-primary-soft: #E8F0FC;
+
+  --color-accent: #1A56DB;
+  --color-accent-hover: #1648C2;
+  --color-accent-light: #DBEAFE;
+
+  --color-neutral-white: #FFFFFF;
+  --color-neutral-offwhite: #F8FAFF;
+  --color-neutral-gray: #6B7280;
+  --color-neutral-border: #D1D9F0;
+  --color-neutral-dark: #1E293B;
+
+  --font-playfair: "Playfair Display", serif;
+  --font-inter: "Inter", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-neutral-offwhite text-neutral-dark font-inter antialiased selection:bg-accent-light selection:text-primary;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-playfair text-primary;
+  }
+}
