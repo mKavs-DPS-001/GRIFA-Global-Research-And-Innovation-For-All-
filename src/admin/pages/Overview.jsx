@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Users, Star, BarChart2, Download, Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
-import purchaseData from '../../data/purchaseData';
+import { auth } from '../../firebase/config';
 
 const INR = (n) => '₹' + n.toLocaleString('en-IN');
 
@@ -55,9 +55,43 @@ function exportCSV(data) {
 }
 
 export default function Overview() {
+  const [purchaseData, setPurchaseData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
   const [sortCol, setSortCol] = useState('date');
   const [sortDir, setSortDir] = useState('desc');
+
+  const getToken = async () => auth.currentUser?.getIdToken();
+
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/enrollments/admin/all`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          // format to match expected structure
+          const formatted = data.data.map(d => ({
+            id: d.id,
+            name: d.user?.name || 'Unknown',
+            email: d.user?.email || 'Unknown',
+            tier: d.plan?.name || 'Unknown',
+            price: d.amount || 0,
+            date: new Date(d.createdAt).toLocaleDateString('en-IN'),
+            status: d.status.charAt(0).toUpperCase() + d.status.slice(1)
+          }));
+          setPurchaseData(formatted);
+        }
+      } catch (err) {
+        console.error('Failed to fetch enrollments', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEnrollments();
+  }, []);
 
   const totalRevenue     = purchaseData.reduce((s, r) => s + r.price, 0);
   const totalEnrollments = purchaseData.length;
@@ -164,7 +198,8 @@ export default function Overview() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((row, i) => {
+              {loading && <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>Loading enrollments...</td></tr>}
+              {!loading && sorted.map((row, i) => {
                 const tc = TIER_COLORS[row.tier] || { bg: '#F1F5F9', text: '#0B1F3A' };
                 return (
                   <tr key={row.id} style={{ borderTop: '1px solid #F1F5F9' }}>

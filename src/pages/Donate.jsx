@@ -13,6 +13,50 @@ const DONATION_TIERS = [
 export default function Donate() {
   const [selectedTier, setSelectedTier] = useState(1500);
   const [customAmount, setCustomAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [pan, setPan] = useState('');
+
+  const handleDonate = async () => {
+    const finalAmount = selectedTier === 'Custom' ? Number(customAmount) : selectedTier;
+    if (!finalAmount || finalAmount <= 0) return alert('Enter a valid amount');
+    if (!name || !email) return alert('Name and email are required');
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/donations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: finalAmount, donorName: name, donorEmail: email, pan })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to create order');
+
+      const { orderId, amount, currency } = data.data;
+
+      const options = {
+        key: 'rzp_test_mock_key',
+        amount,
+        currency,
+        name: 'GRIFA',
+        description: 'Donation',
+        order_id: orderId,
+        handler: async function (response) {
+          alert('Thank you for your generous donation!');
+        },
+        prefill: { name, email },
+        theme: { color: '#1A56DB' }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-offwhite pt-24 pb-20">
@@ -99,13 +143,13 @@ export default function Donate() {
             )}
 
             <div className="space-y-4 mb-6">
-              <input type="text" placeholder="Full Name" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" />
-              <input type="email" placeholder="Email Address" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" />
-              <input type="text" placeholder="PAN Number (for 80G)" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" />
+              <input value={name} onChange={e => setName(e.target.value)} type="text" placeholder="Full Name" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" />
+              <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email Address" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" />
+              <input value={pan} onChange={e => setPan(e.target.value)} type="text" placeholder="PAN Number (for 80G)" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" />
             </div>
 
-            <button className="w-full py-4 bg-accent text-neutral-white font-bold rounded-xl hover:bg-accent-hover transition-colors shadow-md">
-              Proceed to Donate securely
+            <button onClick={handleDonate} disabled={loading} className="w-full py-4 bg-accent text-neutral-white font-bold rounded-xl hover:bg-accent-hover transition-colors shadow-md disabled:opacity-75">
+              {loading ? 'Processing...' : 'Proceed to Donate securely'}
             </button>
             <p className="text-center text-xs text-neutral-gray mt-4">
               Secured by Razorpay. 128-bit encryption.

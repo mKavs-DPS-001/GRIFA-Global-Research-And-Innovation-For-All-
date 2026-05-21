@@ -20,10 +20,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  collection, onSnapshot, updateDoc, doc,
-  arrayUnion, query, orderBy, serverTimestamp,
-} from 'firebase/firestore';
+import { auth } from '../../firebase/config';
 import { db } from '../../firebase/config';
 import { Send, Search, Inbox as InboxIcon, Circle } from 'lucide-react';
 
@@ -87,33 +84,39 @@ export default function Inbox({ onUnreadChange }) {
   const messagesEndRef                    = useRef(null);
 
   // ── Real-time listener ───────────────────────────────────────────────────
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setLoading(false);
-      setFbError('Firebase did not respond in 10s — check credentials & Firestore rules.');
-    }, 10000);
+  const getToken = async () => auth.currentUser?.getIdToken();
 
-    const q = query(collection(db, 'inbox'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(
-      q,
-      snap => {
-        clearTimeout(timeout);
-        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setConversations(docs);
-        setFbError('');
-        setLoading(false);
-        // Update badge count in parent (AdminLayout)
-        if (onUnreadChange) onUnreadChange(docs.filter(c => c.unread).length);
-        // Keep selected in sync with latest data
-        setSelected(prev => prev ? (docs.find(d => d.id === prev.id) || prev) : prev);
-      },
-      err => {
-        clearTimeout(timeout);
-        setFbError(`Firestore error: ${err.message}`);
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/contact/admin/all`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const docs = data.data.map(d => ({
+            id: d.id,
+            name: d.name,
+            email: d.email,
+            subject: d.subject,
+            tag: 'General',
+            status: 'Open',
+            unread: !d.read,
+            createdAt: new Date(d.createdAt),
+            messages: [{ from: 'user', text: d.message, time: d.createdAt }]
+          }));
+          setConversations(docs);
+          if (onUnreadChange) onUnreadChange(docs.filter(c => c.unread).length);
+          setSelected(prev => prev ? (docs.find(d => d.id === prev.id) || prev) : prev);
+        }
+      } catch (err) {
+        setFbError(`API error: ${err.message}`);
+      } finally {
         setLoading(false);
       }
-    );
-    return () => { unsub(); clearTimeout(timeout); };
+    };
+    fetchMessages();
   }, []);
 
   // Scroll to bottom of message thread when it changes
@@ -125,9 +128,9 @@ export default function Inbox({ onUnreadChange }) {
   const handleSelect = async conv => {
     setSelected(conv);
     setReply('');
+    // For MVP, marking as read locally only
     if (conv.unread) {
-      try { await updateDoc(doc(db, 'inbox', conv.id), { unread: false }); }
-      catch (e) { console.error('markRead error:', e); }
+      setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread: false } : c));
     }
   };
 
@@ -141,10 +144,10 @@ export default function Inbox({ onUnreadChange }) {
       time: new Date().toISOString(),
     };
     try {
-      await updateDoc(doc(db, 'inbox', selected.id), {
-        messages: arrayUnion(msg),
-        unread: false,
-      });
+      // For MVP, update locally since we didn't implement reply API
+      const updatedConv = { ...selected, messages: [...selected.messages, msg] };
+      setConversations(prev => prev.map(c => c.id === selected.id ? updatedConv : c));
+      setSelected(updatedConv);
       setReply('');
     } catch (e) {
       console.error('send reply error:', e);
@@ -156,8 +159,9 @@ export default function Inbox({ onUnreadChange }) {
 
   // ── Change status ────────────────────────────────────────────────────────
   const handleStatus = async (id, status) => {
-    try { await updateDoc(doc(db, 'inbox', id), { status }); }
-    catch (e) { console.error('status update error:', e); }
+    // For MVP, update locally
+    setConversations(prev => prev.map(c => c.id === id ? { ...c, status } : c));
+    if (selected?.id === id) setSelected(prev => ({ ...prev, status }));
   };
 
   // ── Filter + search ──────────────────────────────────────────────────────
@@ -254,7 +258,7 @@ export default function Inbox({ onUnreadChange }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                           {conv.unread && <Circle size={8} fill="#1A56DB" color="#1A56DB" />}
                           <span style={{ fontSize: 10, color: '#94A3B8' }}>
-                            {conv.createdAt?.toDate?.()?.toLocaleDateString('en-IN') || '—'}
+                            {conv.createdAt instanceof Date && !isNaN(conv.createdAt) ? conv.createdAt.toLocaleDateString('en-IN') : '—'}
                           </span>
                         </div>
                       </div>

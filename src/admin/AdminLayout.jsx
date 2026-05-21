@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, BarChart2, FileText, BadgeCheck,
-  Layers, Settings, LogOut, ChevronRight, Shield, Flag, Inbox
+  Layers, Settings, LogOut, ChevronRight, Shield, Flag, Inbox, Menu, X
 } from 'lucide-react';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -75,15 +75,32 @@ function LiveClock() {
 export default function AdminLayout({ currentPage, navigate, inboxUnread = 0, children }) {
   const { toggleAdminMode, logout, currentUser } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  const handleExit = () => {
-    toggleAdminMode();
+  const handleExit = async () => {
+    await logout();
+    window.location.href = '/';
   };
+
+  // Close mobile sidebar on route change
+  useEffect(() => { setMobileSidebarOpen(false); }, [currentPage]);
 
   const SIDEBAR_W = sidebarCollapsed ? 64 : 240;
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#F8FAFF' }}>
+
+      {/* ── Mobile overlay backdrop ── */}
+      {mobileSidebarOpen && (
+        <div
+          onClick={() => setMobileSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            zIndex: 150, display: 'block',
+          }}
+          className="md:hidden"
+        />
+      )}
 
       {/* ── SIDEBAR ── */}
       <aside style={{
@@ -93,10 +110,16 @@ export default function AdminLayout({ currentPage, navigate, inboxUnread = 0, ch
         borderRight: '1px solid rgba(255,255,255,0.07)',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width 0.2s ease',
+        transition: 'width 0.2s ease, transform 0.25s ease',
         overflow: 'hidden',
-        zIndex: 100,
-      }}>
+        zIndex: 160,
+        // On mobile: fixed overlay, hidden by default
+        position: undefined,
+      }}
+      className={`
+        max-md:fixed max-md:top-0 max-md:left-0 max-md:h-full max-md:z-[160]
+        ${mobileSidebarOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'}
+      `}>
 
         {/* Brand */}
         <div style={{
@@ -228,7 +251,7 @@ export default function AdminLayout({ currentPage, navigate, inboxUnread = 0, ch
       </aside>
 
       {/* ── MAIN ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
         {/* Top Bar */}
         <header style={{
@@ -236,11 +259,21 @@ export default function AdminLayout({ currentPage, navigate, inboxUnread = 0, ch
           borderBottom: '1px solid #E8EDF5',
           display: 'flex', alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 24px', flexShrink: 0,
+          padding: '0 16px', flexShrink: 0,
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          gap: 12,
         }}>
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0B1F3A', margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileSidebarOpen(o => !o)}
+              className="md:hidden"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#0B1F3A', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+              aria-label="Toggle sidebar"
+            >
+              <Menu size={22} />
+            </button>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0B1F3A', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {PAGE_TITLES[currentPage] || 'Admin'}
             </h1>
           </div>

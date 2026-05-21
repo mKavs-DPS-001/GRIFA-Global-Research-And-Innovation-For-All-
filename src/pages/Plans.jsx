@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Check, Minus, ChevronDown, Plus, Zap, BookOpen, FlaskConical, GraduationCap, Lightbulb, Clock, FileText, Award } from 'lucide-react';
+import { auth } from '../firebase/config';
 
 
 const PLANS = [
@@ -156,7 +158,7 @@ const FAQS = [
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function PricingCard({ plan, index }) {
+function PricingCard({ plan, index, onEnroll }) {
   return (
     <motion.div initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -206,6 +208,7 @@ function PricingCard({ plan, index }) {
 
       {/* CTA */}
       <button
+        onClick={() => onEnroll(plan)}
         className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
           plan.popular
             ? 'bg-accent text-white hover:bg-accent-hover shadow-md shadow-accent/20'
@@ -252,6 +255,85 @@ function FAQItem({ q, a, index }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Plans() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  const handleEnroll = async (plan) => {
+    if (!auth.currentUser) {
+      alert("Please login to enroll in a plan.");
+      navigate('/login');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = await auth.currentUser.getIdToken();
+      
+      // 1. Create order
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/enrollments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ planId: plan.id, amount: plan.price })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to create order');
+
+      const { orderId, amount, currency } = data.data;
+
+      // 2. Open Razorpay
+      const options = {
+        key: 'rzp_test_mock_key', // In real life, use your actual key
+        amount: amount,
+        currency: currency,
+        name: 'GRIFA',
+        description: `Enrollment for ${plan.name} Plan`,
+        order_id: orderId,
+        handler: async function (response) {
+          try {
+            // 3. Verify payment
+            const verifyRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/enrollments/verify`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              navigate('/dashboard');
+            } else {
+              alert('Payment verification failed.');
+            }
+          } catch (err) {
+            alert('Verification Error: ' + err.message);
+          }
+        },
+        prefill: {
+          name: auth.currentUser.displayName || '',
+          email: auth.currentUser.email || ''
+        },
+        theme: {
+          color: '#1A56DB'
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-offwhite">
       <Helmet>
@@ -292,7 +374,7 @@ export default function Plans() {
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
             {PLANS.map((plan, i) => (
-              <PricingCard key={plan.id} plan={plan} index={i} />
+              <PricingCard key={plan.id} plan={plan} index={i} onEnroll={handleEnroll} />
             ))}
           </div>
         </div>
@@ -408,8 +490,8 @@ export default function Plans() {
             Start with Explorer at ₹99 and upgrade anytime. There's no risk.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button className="px-8 py-3.5 bg-white text-accent font-bold rounded-xl hover:bg-neutral-offwhite transition-colors shadow-lg">
-              Start with Explorer — ₹99
+            <button onClick={() => handleEnroll(PLANS[0])} disabled={loading} className="px-8 py-3.5 bg-white text-accent font-bold rounded-xl hover:bg-neutral-offwhite transition-colors shadow-lg disabled:opacity-75">
+              {loading ? 'Processing...' : 'Start with Explorer — ₹99'}
             </button>
             <a href="mailto:info@grifa.in" className="px-8 py-3.5 border-2 border-white/30 text-white font-bold rounded-xl hover:bg-white/10 transition-colors">
               Talk to Our Team

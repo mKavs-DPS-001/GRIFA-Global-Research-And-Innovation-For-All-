@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Download, Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
-import purchaseData from '../../data/purchaseData';
+import { auth } from '../../firebase/config';
 
 const INR = (n) => '₹' + n.toLocaleString('en-IN');
 const TIER_ORDER = ['Explorer', 'Analyst', 'Researcher', 'Scholar', 'Innovator'];
@@ -29,10 +29,43 @@ function exportCSV(data) {
 }
 
 export default function Enrollments() {
+  const [purchaseData, setPurchaseData] = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState('');
   const [sortCol, setSortCol]       = useState('date');
   const [sortDir, setSortDir]       = useState('desc');
   const [tierFilter, setTierFilter] = useState('All');
+
+  const getToken = async () => auth.currentUser?.getIdToken();
+
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/enrollments/admin/all`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const formatted = data.data.map(d => ({
+            id: d.id,
+            name: d.user?.name || 'Unknown',
+            email: d.user?.email || 'Unknown',
+            tier: d.plan?.name || 'Unknown',
+            price: d.amount || 0,
+            date: new Date(d.createdAt).toLocaleDateString('en-IN'),
+            status: d.status.charAt(0).toUpperCase() + d.status.slice(1)
+          }));
+          setPurchaseData(formatted);
+        }
+      } catch (err) {
+        console.error('Failed to fetch enrollments', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEnrollments();
+  }, []);
 
   const handleSort = (col) => {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -108,7 +141,8 @@ export default function Enrollments() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map(row => {
+              {loading && <tr><td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8' }}>Loading...</td></tr>}
+              {!loading && sorted.map(row => {
                 const tc = TIER_COLORS[row.tier] || { bg: '#F1F5F9', text: '#0B1F3A' };
                 return (
                   <tr key={row.id} style={{ borderTop: '1px solid #F1F5F9' }}>
@@ -118,11 +152,11 @@ export default function Enrollments() {
                     <td style={{ padding: '12px 16px' }}><span style={{ background: tc.bg, color: tc.text, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{row.tier}</span></td>
                     <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#0B1F3A' }}>{INR(row.price)}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13, color: '#64748B' }}>{row.date}</td>
-                    <td style={{ padding: '12px 16px' }}><span style={{ background: '#D1FAE5', color: '#065F46', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>Active</span></td>
+                    <td style={{ padding: '12px 16px' }}><span style={{ background: '#D1FAE5', color: '#065F46', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{row.status}</span></td>
                   </tr>
                 );
               })}
-              {sorted.length === 0 && <tr><td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8' }}>No results.</td></tr>}
+              {!loading && sorted.length === 0 && <tr><td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8' }}>No results.</td></tr>}
             </tbody>
           </table>
         </div>

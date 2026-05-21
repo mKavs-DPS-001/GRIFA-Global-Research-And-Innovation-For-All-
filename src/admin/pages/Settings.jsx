@@ -215,6 +215,8 @@ export default function Settings() {
   const [seeding, setSeeding] = useState(false);
   const [seedDone, setSeedDone] = useState(false);
 
+  const getToken = async () => auth.currentUser?.getIdToken();
+
   /* Maintenance state */
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [maintenanceSchedule, setMaintenanceSchedule] = useState({
@@ -225,6 +227,28 @@ export default function Settings() {
   const [maintenanceActive, setLocalMaintenanceActive] = useState(null);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+
+  React.useEffect(() => {
+    const fetchMaintenance = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/settings/maintenance`);
+        const data = await res.json();
+        if (data.success && data.data.active) {
+          const estimated = new Date(data.data.estimatedCompletion);
+          setLocalMaintenanceActive({
+            startDate: new Date().toISOString().split('T')[0], // approx
+            startTime: '00:00',
+            endDate: estimated.toISOString().split('T')[0],
+            endTime: estimated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            message: data.data.message
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch maintenance', err);
+      }
+    };
+    fetchMaintenance();
+  }, []);
 
   const seedInbox = async () => {
     setSeeding(true);
@@ -254,8 +278,8 @@ export default function Settings() {
   };
 
   /* Confirm maintenance modal submission */
-  const handleConfirmMaintenance = () => {
-    const { startDate, startTime, endDate, endTime } = maintenanceSchedule;
+  const handleConfirmMaintenance = async () => {
+    const { startDate, startTime, endDate, endTime, message } = maintenanceSchedule;
     if (!startDate || !startTime || !endDate || !endTime) {
       alert('Please fill in all four date/time fields.');
       return;
@@ -266,18 +290,48 @@ export default function Settings() {
       alert('End time must be after start time.');
       return;
     }
-    const active = { ...maintenanceSchedule };
-    setLocalMaintenanceActive(active);
-    setMaintenanceActive(active);           // push to AuthContext → App.jsx
-    setShowMaintenanceModal(false);
-    showToast('Maintenance window scheduled.');
+    
+    try {
+      const token = await getToken();
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/settings/maintenance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          startTime: start.toISOString(),
+          endTime: end.toISOString(),
+          message
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const active = { ...maintenanceSchedule };
+        setLocalMaintenanceActive(active);
+        setMaintenanceActive(active);           // push to AuthContext → App.jsx
+        setShowMaintenanceModal(false);
+        showToast('Maintenance window scheduled.');
+      }
+    } catch(err) {
+      showToast('Failed to schedule maintenance.');
+    }
   };
 
   /* Cancel maintenance */
-  const handleCancelMaintenance = () => {
-    setLocalMaintenanceActive(null);
-    setMaintenanceActive(null);
-    showToast('Maintenance window cancelled.');
+  const handleCancelMaintenance = async () => {
+    try {
+      const token = await getToken();
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/settings/maintenance`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setLocalMaintenanceActive(null);
+      setMaintenanceActive(null);
+      showToast('Maintenance window cancelled.');
+    } catch(err) {
+      showToast('Failed to cancel maintenance.');
+    }
   };
 
   return (

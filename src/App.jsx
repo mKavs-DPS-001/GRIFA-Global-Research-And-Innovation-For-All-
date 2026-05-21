@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AnimatePresence } from 'framer-motion';
+import { ThemeProvider } from 'next-themes';
 
 // Admin portal (completely separate app)
 const AdminPortal = lazy(() => import('./admin/AdminPortal'));
@@ -11,7 +12,8 @@ const AdminPortal = lazy(() => import('./admin/AdminPortal'));
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import WhatsAppButton from './components/WhatsAppButton';
-import AdminToggle from './components/AdminToggle';
+import ScrollToTop from './components/ScrollToTop';
+// AdminToggle removed — admin access is now Firestore-controlled only
 
 // User-facing pages
 const Home = lazy(() => import('./pages/Home'));
@@ -146,7 +148,7 @@ function UserApp() {
       </main>
       <Footer />
       <WhatsAppButton />
-      <AdminToggle />
+      {/* AdminToggle removed for security — admin role set via Firestore /adminRoles/{uid} */}
     </div>
   );
 }
@@ -186,12 +188,15 @@ function AppRoot() {
 
 export default function App() {
   return (
-    <HelmetProvider>
-      <AuthProvider>
-        <Router>
-          <AppRoot />
-        </Router>
-      </AuthProvider>
-    </HelmetProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <HelmetProvider>
+        <AuthProvider>
+          <Router>
+            <ScrollToTop />
+            <AppRoot />
+          </Router>
+        </AuthProvider>
+      </HelmetProvider>
+    </ThemeProvider>
   );
 }

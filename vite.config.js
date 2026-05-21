@@ -9,16 +9,6 @@ export default defineConfig({
     tailwindcss(),
   ],
   build: {
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          firebase: ['firebase/app', 'firebase/firestore', 'firebase/auth', 'firebase/storage'],
-          motion: ['framer-motion'],
-          router: ['react-router-dom']
-        }
-      }
-    }
+    chunkSizeWarningLimit: 1000
   }
 })

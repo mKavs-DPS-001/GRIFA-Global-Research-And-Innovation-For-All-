@@ -1,70 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Search, Filter } from 'lucide-react';
 import ProblemCard from '../components/ProblemCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const ALL_PROBLEMS = [
-  {
-    id: 'speed-breakers',
-    title: 'Newtonian Fluid Alternative to Asphalt Speed Breakers',
-    description: 'Traditional speed breakers cause vehicle damage and discomfort. Can non-Newtonian fluids provide dynamic resistance based on vehicle speed? We are looking for researchers to test specific non-Newtonian mixtures under high-impact scenarios.',
-    disciplines: ['Physics', 'Civil Engineering', 'Materials Science'],
-    videoUrl: 'https://www.youtube.com/watch?v=12345678901',
-    views: 1250
-  },
-  {
-    id: 'bus-stand',
-    title: 'Safe & Budget-Friendly Snacks at Bus Stands',
-    description: 'Creating a sustainable, hygienic business model for snack vendors at rural and semi-urban bus stands. This involves studying consumer behavior, food preservation, and supply chain logistics.',
-    disciplines: ['Business', 'Food Tech', 'Public Health', 'Psychology'],
-    videoUrl: 'https://www.youtube.com/watch?v=12345678902',
-    views: 840
-  },
-  {
-    id: 'open-urination',
-    title: 'Interdisciplinary Solutions to Open Urination',
-    description: 'Addressing the behavioral, infrastructural, and psychological aspects of open urination in urban spaces. Why do people ignore public toilets? How can urban design passively discourage this?',
-    disciplines: ['Psychology', 'Urban Planning', 'Sociology'],
-    videoUrl: 'https://www.youtube.com/watch?v=12345678903',
-    views: 2100
-  },
-  {
-    id: 'stray-dogs',
-    title: 'Humane Management of Urban Stray Dog Populations',
-    description: 'Developing data-driven, humane models for stray dog population control that factor in urban waste management, animal psychology, and public safety.',
-    disciplines: ['Zoology', 'Urban Planning', 'Public Health'],
-    videoUrl: 'https://www.youtube.com/watch?v=12345678904',
-    views: 3420
-  },
-  {
-    id: 'language-barrier',
-    title: 'Overcoming Medical Language Barriers in Rural Clinics',
-    description: 'How can we design an intuitive, low-tech communication system for doctors and patients who do not share a common language in high-stress medical environments?',
-    disciplines: ['Linguistics', 'Medicine', 'Design'],
-    videoUrl: 'https://www.youtube.com/watch?v=12345678905',
-    views: 950
-  },
-  {
-    id: 'smart-farming',
-    title: 'Low-Cost Soil Moisture Sensors for Subsistence Farmers',
-    description: 'Engineering a reliable, extremely low-cost soil moisture sensor using locally available materials to help subsistence farmers optimize water usage.',
-    disciplines: ['Electronics', 'Agriculture', 'Programming'],
-    videoUrl: 'https://www.youtube.com/watch?v=12345678906',
-    views: 1800
-  }
-];
-
 export default function Problems() {
+  const [problems, setProblems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDiscipline, setSelectedDiscipline] = useState('All');
 
-  const disciplines = ['All', ...new Set(ALL_PROBLEMS.flatMap(p => p.disciplines))].sort();
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setProblems(data.data);
+        } else {
+          console.error("Failed to load problems");
+        }
+      })
+      .catch(err => console.error("API error:", err))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const filteredProblems = ALL_PROBLEMS.filter(p => {
+  const disciplines = ['All', ...new Set(problems.flatMap(p => p.disciplines || []))].sort();
+
+  const filteredProblems = problems.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          p.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDiscipline = selectedDiscipline === 'All' || p.disciplines.includes(selectedDiscipline);
+                          (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesDiscipline = selectedDiscipline === 'All' || (p.disciplines && p.disciplines.includes(selectedDiscipline));
     return matchesSearch && matchesDiscipline;
   });
 
@@ -123,7 +88,11 @@ export default function Problems() {
         </div>
 
         {/* Grid */}
-        {filteredProblems.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-20">
+            <h3 className="text-2xl font-playfair font-bold text-primary mb-2">Loading Problems...</h3>
+          </div>
+        ) : filteredProblems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProblems.map((prob, i) => (
               <ProblemCard key={prob.id} problem={prob} index={i} />

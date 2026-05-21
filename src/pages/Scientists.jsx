@@ -1,43 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ScientistCard from '../components/ScientistCard';
 
-const ALL_SCIENTISTS = [
-  {
-    id: 's1', name: 'Dr. Researcher A', institution: 'IISc Bangalore', expertise: 'Advanced Materials & Fluid Dynamics', disciplines: ['Physics', 'Materials Science'],
-    photoUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=600&q=70&auto=format'
-  },
-  {
-    id: 's2', name: 'Dr. Researcher B', institution: 'GCU', expertise: 'Environmental Psychology & Urban Behavior', disciplines: ['Psychology', 'Sociology'],
-    photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=70&auto=format'
-  },
-  {
-    id: 's3', name: 'Prof. Researcher C', institution: 'REVA University', expertise: 'Sustainable Civil Engineering', disciplines: ['Civil Engineering', 'Architecture'],
-    photoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&q=70&auto=format'
-  },
-  {
-    id: 's4', name: 'Dr. Researcher D', institution: 'IIT Bombay', expertise: 'AI in Healthcare', disciplines: ['Programming', 'Medicine'],
-    photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600&q=70&auto=format'
-  },
-  {
-    id: 's5', name: 'Prof. Researcher E', institution: 'Oxford University', expertise: 'Computational Linguistics', disciplines: ['Language', 'Programming'],
-    photoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=600&q=70&auto=format'
-  },
-  {
-    id: 's6', name: 'Dr. Researcher F', institution: 'Stanford Univ.', expertise: 'Hospitality Management Strategies', disciplines: ['Hotel Management', 'Business'],
-    photoUrl: 'https://images.unsplash.com/photo-1508214751196-bfd1414e4cb1?w=600&q=70&auto=format'
-  }
-];
-
 export default function Scientists() {
+  const [scientists, setScientists] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedDiscipline, setSelectedDiscipline] = useState('All');
-  const disciplines = ['All', ...new Set(ALL_SCIENTISTS.flatMap(s => s.disciplines))].sort();
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setScientists(data.data);
+        } else {
+          console.error("Failed to load scientists");
+        }
+      })
+      .catch(err => console.error("API error:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const disciplines = ['All', ...new Set(scientists.flatMap(s => s.disciplines))].sort();
 
   const filteredScientists = selectedDiscipline === 'All' 
-    ? ALL_SCIENTISTS 
-    : ALL_SCIENTISTS.filter(s => s.disciplines.includes(selectedDiscipline));
+    ? scientists 
+    : scientists.filter(s => s.disciplines.includes(selectedDiscipline));
 
   return (
     <div className="min-h-screen bg-neutral-offwhite pt-24 pb-20">
@@ -85,7 +75,11 @@ export default function Scientists() {
         </div>
 
         {/* Grid */}
-        {filteredScientists.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-20">
+            <h3 className="text-2xl font-playfair font-bold text-primary mb-2">Loading Scientists...</h3>
+          </div>
+        ) : filteredScientists.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {filteredScientists.map((scientist, i) => (
               <ScientistCard key={scientist.id} scientist={scientist} index={i} />

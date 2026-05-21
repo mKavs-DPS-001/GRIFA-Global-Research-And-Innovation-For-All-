@@ -1,0 +1,69 @@
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Environment & Secrets ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example        # keep the template — never the real values
+
+# ─── Firebase / Google Service Account Keys ───────────────────────────────────
+*-service-account.json
+*serviceAccount*.json
+*firebase-adminsdk*.json
+firebase-key.json
+serviceAccountKey.json
+google-credentials.json
+gcp-credentials.json
+
+# ─── SSL / TLS Certificates & Private Keys ────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.jks
+
+# ─── API Keys & Secrets (common file names) ───────────────────────────────────
+secrets.json
+secrets.yaml
+secrets.yml
+credentials.json
+credentials.yaml
+config/secrets.*
+razorpay*.json
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── Build / Dist ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+
+# ─── Runtime & Cache ──────────────────────────────────────────────────────────
+.cache/
+.tmp/
+tmp/
+*.pid
+*.seed
+*.pid.lock
+
+# ─── OS & Editor Noise ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

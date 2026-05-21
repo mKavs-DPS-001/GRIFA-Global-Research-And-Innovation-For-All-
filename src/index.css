@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-primary: #0B1F3A;
@@ -19,12 +20,181 @@
   --font-inter: "Inter", sans-serif;
 }
 
+/* ── Dark mode CSS variable overrides ─────────────────────
+   Tailwind v4 reads from CSS custom properties, so overriding
+   them here makes ALL utility classes (bg-neutral-white, etc.)
+   automatically switch to dark values globally.
+────────────────────────────────────────────────────────── */
+.dark {
+  --color-neutral-white: #111827;
+  --color-neutral-offwhite: #09090b;
+  --color-neutral-dark: #e2e8f0;
+  --color-neutral-gray: #94a3b8;
+  --color-neutral-border: rgba(255, 255, 255, 0.08);
+  --color-primary-soft: #0c1a3a;
+  --color-accent-light: #1e3a6e;
+}
+
 @layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-neutral-offwhite text-neutral-dark font-inter antialiased selection:bg-accent-light selection:text-primary;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
-  
+
+  /* ── Smooth Theme Transition (Highly Optimized for Low-Resource Devices) ───── */
+  html.transitioning,
+  html.transitioning body,
+  html.transitioning header,
+  html.transitioning footer,
+  html.transitioning main,
+  html.transitioning section,
+  html.transitioning article,
+  html.transitioning aside,
+  html.transitioning nav,
+  html.transitioning h1,
+  html.transitioning h2,
+  html.transitioning h3,
+  html.transitioning h4,
+  html.transitioning h5,
+  html.transitioning h6,
+  html.transitioning p,
+  html.transitioning a,
+  html.transitioning button,
+  html.transitioning input,
+  html.transitioning textarea,
+  html.transitioning select,
+  html.transitioning svg,
+  html.transitioning path,
+  html.transitioning span,
+  html.transitioning div,
+  html.transitioning label {
+    transition-property: background-color, border-color, color, fill, stroke !important;
+    transition-duration: 350ms !important;
+    transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    transition-delay: 0s !important;
+    will-change: background-color, border-color, color;
+  }
+
+  /* ── Dark Mode ────────────────────────────────────── */
+  .dark body {
+    background-color: #09090b;
+    color: #e2e8f0;
+  }
+
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    color: #f0f4ff;
+  }
+
+  /* Dark mode surface cards */
+  .dark .bg-neutral-white,
+  .dark .bg-neutral-offwhite {
+    background-color: #111827 !important;
+  }
+
+  /* Dark mode borders */
+  .dark .border-neutral-border {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  /* Dark mode inputs */
+  .dark input,
+  .dark textarea,
+  .dark select {
+    background-color: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: #e2e8f0 !important;
+  }
+
+  /* Dark mode input placeholders */
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #64748b !important;
+  }
+
+  /* ── Dark mode: Tailwind bg overrides ─────────────── */
+  .dark .bg-white { background-color: #111827 !important; }
+  .dark .bg-gray-50 { background-color: #0f172a !important; }
+  .dark .bg-gray-100 { background-color: #1e293b !important; }
+  .dark .bg-slate-50 { background-color: #0f172a !important; }
+  .dark .bg-blue-50 { background-color: #0c1a3a !important; }
+
+  /* Dark mode: text overrides */
+  .dark .text-gray-600,
+  .dark .text-gray-700,
+  .dark .text-gray-800,
+  .dark .text-gray-900,
+  .dark .text-slate-700,
+  .dark .text-slate-800,
+  .dark .text-slate-900 { color: #cbd5e1 !important; }
+
+  .dark .text-gray-400,
+  .dark .text-gray-500,
+  .dark .text-slate-400,
+  .dark .text-slate-500 { color: #64748b !important; }
+
+  /* Dark mode: border overrides */
+  .dark .border-gray-100,
+  .dark .border-gray-200,
+  .dark .border-slate-100,
+  .dark .border-slate-200 { border-color: rgba(255,255,255,0.08) !important; }
+
+  /* Dark mode: section backgrounds that use inline styles */
+  /* These are handled by the Navbar and body bg. For inline-styled sections,
+     we use a CSS cascade trick: any section with a light background transitions. */
+  .dark section,
+  .dark main,
+  .dark article,
+  .dark aside {
+    background-color: inherit;
+  }
+
+  /* Cards / panels with rounded corners */
+  .dark .rounded-2xl,
+  .dark .rounded-3xl {
+    --tw-ring-color: rgba(59, 130, 246, 0.08);
+  }
+
+  /* Shadow adjustments for dark mode */
+  .dark .shadow-lg,
+  .dark .shadow-xl,
+  .dark .shadow-2xl {
+    --tw-shadow-color: rgba(0, 0, 0, 0.5);
+  }
+
+  /* Scrollbar for dark mode */
+  .dark ::-webkit-scrollbar-track { background: #09090b; }
+  .dark ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+  .dark ::-webkit-scrollbar-thumb:hover { background: #1A56DB; }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-playfair text-primary;
+  }
+
+  /* Prevent iOS from zooming on form inputs */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Better tap targets on mobile */
+  button, a {
+    touch-action: manipulation;
+  }
+
+  /* Smooth image rendering */
+  img {
+    max-width: 100%;
+    height: auto;
   }
 }

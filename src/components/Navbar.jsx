@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ChevronDown, Menu, X, MapPin, Compass } from 'lucide-react';
+import ThemeSwitcher from './ui/ThemeSwitcher';
+import { useTheme } from 'next-themes';
 
 // ─── Nav structure ────────────────────────────────────────────────────────────
 
@@ -144,6 +146,8 @@ export default function Navbar() {
   const [mobileExpanded, setMobileExpanded] = useState(null);
   const location = useLocation();
   const { currentUser } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -154,17 +158,18 @@ export default function Navbar() {
   // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false); setMobileExpanded(null); }, [location.pathname]);
 
-  const navBg = scrolled
-    ? 'rgba(255,255,255,0.97)'
-    : 'rgba(11,31,58,0.92)';
+  // Dark mode: always use black/dark background
+  const navBg = isDark
+    ? scrolled ? 'rgba(9,9,11,0.97)' : 'rgba(9,9,11,0.88)'
+    : scrolled ? 'rgba(255,255,255,0.97)' : 'rgba(11,31,58,0.92)';
   const shadow = scrolled
-    ? '0 2px 20px rgba(11,31,58,0.10)'
+    ? isDark ? '0 2px 20px rgba(0,0,0,0.6)' : '0 2px 20px rgba(11,31,58,0.10)'
     : '0 2px 24px rgba(0,0,0,0.22)';
-  const logoColor = scrolled ? '#0B1F3A' : '#fff';
-  const subLogoColor = scrolled ? '#1A56DB' : 'rgba(255,255,255,0.55)';
-  const linkColor = scrolled ? '#1E293B' : 'rgba(255,255,255,0.88)';
-  const activeLinkColor = scrolled ? '#1A56DB' : '#60A5FA';
-  const borderB = scrolled ? '1px solid #E8EDF5' : '1px solid rgba(255,255,255,0.08)';
+  const logoColor = isDark ? '#fff' : scrolled ? '#0B1F3A' : '#fff';
+  const subLogoColor = isDark ? '#3B82F6' : scrolled ? '#1A56DB' : 'rgba(255,255,255,0.55)';
+  const linkColor = isDark ? 'rgba(255,255,255,0.85)' : scrolled ? '#1E293B' : 'rgba(255,255,255,0.88)';
+  const activeLinkColor = isDark ? '#60A5FA' : scrolled ? '#1A56DB' : '#60A5FA';
+  const borderB = isDark ? '1px solid rgba(59,130,246,0.15)' : scrolled ? '1px solid #E8EDF5' : '1px solid rgba(255,255,255,0.08)';
 
   return (
     <>
@@ -181,10 +186,10 @@ export default function Navbar() {
           transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s',
         }}
       >
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: '100%', padding: '0 40px', height: 64, display: 'flex', alignItems: 'center', gap: 8 }}>
 
           {/* Logo */}
-          <Link to="/" style={{ textDecoration: 'none', flexShrink: 0, marginRight: 8 }}>
+          <Link to="/" style={{ textDecoration: 'none', flex: 1, display: 'flex', alignItems: 'center' }}>
             <div style={{ lineHeight: 1 }}>
               <span style={{ fontSize: 22, fontWeight: 900, color: logoColor, letterSpacing: -0.5, fontFamily: "'Playfair Display', serif", transition: 'color 0.3s' }}>
                 GRIFA
@@ -196,7 +201,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }} className="hidden md:flex">
+          <div style={{ alignItems: 'center', gap: 4 }} className="hidden md:flex justify-center">
             {DIRECT_LINKS.map(l => {
               const active = location.pathname === l.to;
               return (
@@ -224,7 +229,8 @@ export default function Navbar() {
           </div>
 
           {/* Right actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }} className="hidden md:flex">
+          <div style={{ alignItems: 'center', gap: 10 }} className="hidden md:flex flex-1 justify-end">
+            <ThemeSwitcher />
             <Link
               to="/impact-map"
               style={{
@@ -266,20 +272,13 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Mobile hamburger */}
+
+
+          {/* Mobile menu toggle */}
           <button
-            onClick={() => setMobileOpen(o => !o)}
-            className="md:hidden"
-            style={{
-              marginLeft: 'auto',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 6,
-              color: logoColor,
-              display: 'flex',
-              alignItems: 'center',
-            }}
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden flex items-center justify-center p-2 rounded-lg"
+            style={{ color: logoColor, transition: 'background-color 0.2s' }}
             aria-label="Toggle menu"
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
@@ -289,98 +288,137 @@ export default function Navbar() {
         {/* Mobile menu */}
         <div
           style={{
-            maxHeight: mobileOpen ? 600 : 0,
+            maxHeight: mobileOpen ? 800 : 0,
             overflow: 'hidden',
-            transition: 'max-height 0.35s ease',
-            background: '#0B1F3A',
-            borderTop: mobileOpen ? '1px solid rgba(255,255,255,0.08)' : 'none',
+            transition: 'max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            background: isDark ? 'rgba(9, 9, 11, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderBottom: mobileOpen ? (isDark ? '1px solid rgba(59,130,246,0.15)' : '1px solid rgba(11,31,58,0.08)') : 'none',
+            boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)',
           }}
           className="md:hidden"
         >
-          <div style={{ padding: '12px 16px 20px' }}>
+          <div style={{ padding: '16px 20px 24px' }}>
             {/* Direct links */}
-            {DIRECT_LINKS.map(l => (
-              <Link
-                key={l.to}
-                to={l.to}
-                style={{
-                  display: 'block',
-                  padding: '11px 8px',
-                  color: location.pathname === l.to ? '#60A5FA' : 'rgba(255,255,255,0.85)',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  textDecoration: 'none',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
-                }}
-              >
-                {l.label}
-              </Link>
-            ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {DIRECT_LINKS.map(l => {
+                const active = location.pathname === l.to;
+                return (
+                  <Link
+                    key={l.to}
+                    to={l.to}
+                    style={{
+                      display: 'block',
+                      padding: '12px 14px',
+                      color: active ? (isDark ? '#60A5FA' : '#1A56DB') : (isDark ? 'rgba(255,255,255,0.75)' : 'rgba(30,41,59,0.85)'),
+                      fontWeight: 600,
+                      fontSize: 15,
+                      textDecoration: 'none',
+                      borderRadius: 10,
+                      background: active ? (isDark ? 'rgba(59,130,246,0.08)' : 'rgba(26,86,219,0.05)') : 'transparent',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {l.label}
+                  </Link>
+                );
+              })}
+            </div>
 
             {/* Accordion dropdowns */}
-            {DROPDOWNS.map(d => (
-              <div key={d.label}>
-                <button
-                  onClick={() => setMobileExpanded(e => e === d.label ? null : d.label)}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '11px 8px',
-                    background: 'none',
-                    border: 'none',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    color: 'rgba(255,255,255,0.85)',
-                    fontWeight: 600,
-                    fontSize: 15,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {d.label}
-                  <ChevronDown
-                    size={16}
-                    style={{
-                      transform: mobileExpanded === d.label ? 'rotate(180deg)' : 'none',
-                      transition: 'transform 0.2s',
-                      opacity: 0.6,
-                    }}
-                  />
-                </button>
-                <div
-                  style={{
-                    maxHeight: mobileExpanded === d.label ? 300 : 0,
-                    overflow: 'hidden',
-                    transition: 'max-height 0.25s ease',
-                  }}
-                >
-                  {d.items.map(item => (
-                    <Link
-                      key={item.to}
-                      to={item.to}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+              {DROPDOWNS.map(d => {
+                const isExpanded = mobileExpanded === d.label;
+                return (
+                  <div key={d.label} style={{ borderRadius: 10, overflow: 'hidden', background: isExpanded ? (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)') : 'transparent' }}>
+                    <button
+                      onClick={() => setMobileExpanded(e => e === d.label ? null : d.label)}
                       style={{
-                        display: 'block',
-                        padding: '10px 8px 10px 24px',
-                        color: location.pathname === item.to ? '#60A5FA' : 'rgba(255,255,255,0.65)',
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '12px 14px',
+                        background: 'none',
+                        border: 'none',
+                        color: isDark ? 'rgba(255,255,255,0.75)' : 'rgba(30,41,59,0.85)',
                         fontWeight: 600,
-                        fontSize: 14,
-                        textDecoration: 'none',
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        fontSize: 15,
+                        cursor: 'pointer',
                       }}
                     >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
+                      <span>{d.label}</span>
+                      <ChevronDown
+                        size={16}
+                        style={{
+                          transform: isExpanded ? 'rotate(180deg)' : 'none',
+                          transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                          opacity: 0.6,
+                        }}
+                      />
+                    </button>
+                    <div
+                      style={{
+                        maxHeight: isExpanded ? 300 : 0,
+                        overflow: 'hidden',
+                        transition: 'max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                        paddingLeft: 12,
+                      }}
+                    >
+                      {d.items.map(item => {
+                        const subActive = location.pathname === item.to;
+                        return (
+                          <Link
+                            key={item.to}
+                            to={item.to}
+                            style={{
+                              display: 'block',
+                              padding: '10px 14px',
+                              color: subActive ? (isDark ? '#60A5FA' : '#1A56DB') : (isDark ? 'rgba(255,255,255,0.55)' : 'rgba(30,41,59,0.65)'),
+                              fontWeight: 600,
+                              fontSize: 14,
+                              textDecoration: 'none',
+                              borderRadius: 8,
+                              background: subActive ? (isDark ? 'rgba(59,130,246,0.08)' : 'rgba(26,86,219,0.05)') : 'transparent',
+                            }}
+                          >
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Subtle Divider */}
+            <div style={{ height: 1, background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)', margin: '16px 0' }} />
+
+            {/* Theme switcher action row */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 14px',
+              borderRadius: 10,
+              background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+              marginBottom: 16
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(30,41,59,0.6)' }}>Theme</span>
+              <ThemeSwitcher />
+            </div>
 
             {/* Mobile CTAs */}
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <Link
                 to="/impact-map"
                 style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
                   padding: '12px',
                   background: 'linear-gradient(135deg, #D97706, #F59E0B)',
                   color: '#fff',
@@ -388,6 +426,7 @@ export default function Navbar() {
                   fontSize: 14,
                   borderRadius: 10,
                   textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(217,119,6,0.15)',
                 }}
               >
                 <MapPin size={16} />
@@ -396,14 +435,17 @@ export default function Navbar() {
               <Link
                 to="/login"
                 style={{
-                  display: 'block', textAlign: 'center',
+                  display: 'block',
+                  textAlign: 'center',
                   padding: '12px',
-                  background: '#1A56DB',
-                  color: '#fff',
+                  background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(26,86,219,0.06)',
+                  border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(26,86,219,0.15)',
+                  color: isDark ? '#fff' : '#1A56DB',
                   fontWeight: 700,
                   fontSize: 14,
                   borderRadius: 10,
                   textDecoration: 'none',
+                  transition: 'all 0.2s ease',
                 }}
               >
                 {currentUser ? 'Dashboard' : 'Login'}

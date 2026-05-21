@@ -1,18 +1,36 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ArrowLeft, Users, CheckCircle } from 'lucide-react';
-import { ALL_PROBLEMS } from './Problems';
 import EnquiryForm from '../components/EnquiryForm';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProblemDetail() {
   const { id } = useParams();
-  const problem = ALL_PROBLEMS.find(p => p.id === id);
+  const [problem, setProblem] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    setLoading(true);
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setProblem(data.data);
+        }
+      })
+      .catch(err => console.error("Failed to fetch problem detail:", err))
+      .finally(() => setLoading(false));
   }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <h2 className="text-2xl font-bold text-primary">Loading Problem...</h2>
+      </div>
+    );
+  }
 
   if (!problem) {
     return (
@@ -63,11 +81,64 @@ export default function ProblemDetail() {
             <motion.div initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-            className="rounded-3xl overflow-hidden shadow-sm border border-neutral-border/50 bg-[#0B1F3A] relative pt-[56.25%]"
-             viewport={{ once: true }}>
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/25"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-                <span className="text-white/40 text-sm font-semibold tracking-widest uppercase">Video Coming Soon</span>
+              className="rounded-3xl overflow-hidden shadow-sm border border-neutral-border/50 relative pt-[56.25%]"
+              viewport={{ once: true }}
+            >
+              <div
+                className="absolute inset-0 flex flex-col items-center justify-center gap-4"
+                style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0f2040 40%, #0d1a35 70%, #080f20 100%)' }}
+              >
+                {/* Subtle grid lines */}
+                <div className="absolute inset-0 opacity-[0.04]" style={{
+                  backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+                  backgroundSize: '48px 48px'
+                }} />
+
+                {/* Glow blob */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div style={{
+                    width: '260px', height: '140px',
+                    background: 'radial-gradient(ellipse, rgba(255,0,0,0.10) 0%, transparent 70%)',
+                    filter: 'blur(30px)',
+                  }} />
+                </div>
+
+                {/* Play button with pulse ring */}
+                <div className="relative flex items-center justify-center z-10">
+                  <motion.div
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0, 0.2] }}
+                    transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute rounded-full"
+                    style={{ width: 88, height: 88, border: '1.5px solid rgba(255,60,60,0.45)' }}
+                  />
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0, 0.15] }}
+                    transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+                    className="absolute rounded-full"
+                    style={{ width: 110, height: 110, border: '1px solid rgba(255,60,60,0.2)' }}
+                  />
+                  {/* YouTube button */}
+                  <div
+                    className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
+                    style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}
+                  >
+                    <svg width="30" height="21" viewBox="0 0 22 16" fill="none">
+                      <path d="M21.54 2.5A2.76 2.76 0 0 0 19.6.54C17.9 0 11 0 11 0S4.1 0 2.4.54A2.76 2.76 0 0 0 .46 2.5 29 29 0 0 0 0 8a29 29 0 0 0 .46 5.5A2.76 2.76 0 0 0 2.4 15.46C4.1 16 11 16 11 16s6.9 0 8.6-.54a2.76 2.76 0 0 0 1.94-1.96A29 29 0 0 0 22 8a29 29 0 0 0-.46-5.5Z" fill="#FF0000"/>
+                      <polygon points="8.75,11.5 14.5,8 8.75,4.5" fill="white"/>
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Label */}
+                <div className="z-10 flex flex-col items-center gap-1.5">
+                  <span className="text-white/85 text-xs font-semibold tracking-[0.2em] uppercase">
+                    Coming Soon on YouTube
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-white/35 text-[11px] tracking-wider uppercase">Video in production</span>
+                  </div>
+                </div>
               </div>
             </motion.div>
 

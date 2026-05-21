@@ -1,14 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, X, Check } from 'lucide-react';
-
-const INIT_SCIENTISTS = [
-  { id: 's1', name: 'Dr. Researcher A', institution: 'IISc Bangalore',   specialization: 'Advanced Materials & Fluid Dynamics',         status: 'Active'  },
-  { id: 's2', name: 'Dr. Researcher B', institution: 'GCU',               specialization: 'Environmental Psychology & Urban Behavior',    status: 'Active'  },
-  { id: 's3', name: 'Prof. Researcher C', institution: 'REVA University', specialization: 'Sustainable Civil Engineering',                status: 'Pending' },
-  { id: 's4', name: 'Dr. Researcher D', institution: 'IIT Bombay',        specialization: 'AI in Healthcare',                            status: 'Active'  },
-  { id: 's5', name: 'Prof. Researcher E', institution: 'Oxford University',specialization: 'Computational Linguistics',                   status: 'Revoked' },
-  { id: 's6', name: 'Dr. Researcher F', institution: 'Stanford Univ.',    specialization: 'Hospitality Management Strategies',           status: 'Active'  },
-];
+import { auth } from '../../firebase/config';
 
 const STATUS_STYLE = {
   Active:  { bg: '#D1FAE5', color: '#065F46' },
@@ -19,7 +11,8 @@ const STATUS_STYLE = {
 const BLANK = { name: '', institution: '', specialization: '', tags: '', imageUrl: '', status: 'Pending' };
 
 export default function ScientistManager() {
-  const [scientists, setScientists] = useState(INIT_SCIENTISTS);
+  const [scientists, setScientists] = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [editId, setEditId]         = useState(null);
   const [editData, setEditData]     = useState({});
   const [showModal, setShowModal]   = useState(false);
@@ -27,30 +20,77 @@ export default function ScientistManager() {
   const [toast, setToast]           = useState('');
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2800); };
+  const getToken = async () => auth.currentUser?.getIdToken();
 
-  const setStatus = (id, status) => {
-    setScientists(prev => prev.map(s => s.id === id ? { ...s, status } : s));
-    showToast(`${status === 'Active' ? 'Reinstated' : 'Revoked'} successfully.`);
+  const fetchScientists = async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists/admin`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setScientists(data.data);
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading scientists');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const startEdit = (s) => { setEditId(s.id); setEditData({ name: s.name, institution: s.institution, specialization: s.specialization }); };
-  const saveEdit  = (id) => {
-    setScientists(prev => prev.map(s => s.id === id ? { ...s, ...editData } : s));
-    setEditId(null); showToast('Profile updated.');
+  useEffect(() => { fetchScientists(); }, []);
+
+  const setStatus = async (id, status) => {
+    try {
+      const token = await getToken();
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: status.toLowerCase() })
+      });
+      setScientists(prev => prev.map(s => s.id === id ? { ...s, status: status } : s));
+      showToast(`${status === 'Active' ? 'Reinstated' : 'Revoked'} successfully.`);
+    } catch(e) { showToast('Error updating status'); }
   };
 
-  const addScientist = () => {
+  const startEdit = (s) => { setEditId(s.id); setEditData({ name: s.name, institution: s.institution, specialization: s.specialization || s.expertise }); };
+  const saveEdit  = async (id) => {
+    try {
+      const token = await getToken();
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(editData)
+      });
+      setScientists(prev => prev.map(s => s.id === id ? { ...s, ...editData } : s));
+      setEditId(null); showToast('Profile updated.');
+    } catch(e) { showToast('Error saving profile'); }
+  };
+
+  const addScientist = async () => {
     if (!newData.name.trim()) return;
-    const id = 's' + Date.now();
-    setScientists(prev => [...prev, { ...newData, id }]);
-    setNewData(BLANK); setShowModal(false); showToast('Scientist added.');
+    try {
+      const token = await getToken();
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newData, status: newData.status.toLowerCase() })
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Fix case to match frontend expectation (Active vs active)
+        const serverDoc = { ...data.data, status: data.data.status.charAt(0).toUpperCase() + data.data.status.slice(1) };
+        setScientists(prev => [serverDoc, ...prev]);
+        setNewData(BLANK); setShowModal(false); showToast('Scientist added.');
+      }
+    } catch(e) { showToast('Error adding scientist'); }
   };
 
   const stats = {
     total:   scientists.length,
-    active:  scientists.filter(s => s.status === 'Active').length,
-    pending: scientists.filter(s => s.status === 'Pending').length,
-    revoked: scientists.filter(s => s.status === 'Revoked').length,
+    active:  scientists.filter(s => s.status?.toLowerCase() === 'active').length,
+    pending: scientists.filter(s => s.status?.toLowerCase() === 'pending').length,
+    revoked: scientists.filter(s => s.status?.toLowerCase() === 'revoked').length,
   };
 
   const inp = (val, onChange) => (
@@ -104,8 +144,11 @@ export default function ScientistManager() {
               </tr>
             </thead>
             <tbody>
-              {scientists.map(s => {
-                const sc = STATUS_STYLE[s.status] || STATUS_STYLE.Active;
+              {loading && <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center' }}>Loading scientists...</td></tr>}
+              {!loading && scientists.map(s => {
+                // Ensure proper capitalization for STATUS_STYLE mapping
+                const capStatus = s.status ? (s.status.charAt(0).toUpperCase() + s.status.slice(1)) : 'Active';
+                const sc = STATUS_STYLE[capStatus] || STATUS_STYLE.Active;
                 const isEditing = editId === s.id;
                 return (
                   <tr key={s.id} style={{ borderTop: '1px solid #F1F5F9', background: isEditing ? '#F8FAFF' : '#fff' }}>
@@ -127,7 +170,7 @@ export default function ScientistManager() {
                         : <span style={{ fontSize: 12, color: '#64748B' }}>{s.specialization}</span>}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{s.status}</span>
+                      <span style={{ background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{capStatus}</span>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap' }}>
@@ -138,7 +181,7 @@ export default function ScientistManager() {
                           </>
                         ) : (
                           <>
-                            {s.status !== 'Revoked'
+                            {capStatus !== 'Revoked'
                               ? <button onClick={() => setStatus(s.id, 'Revoked')} style={{ padding: '5px 10px', background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Revoke</button>
                               : <button onClick={() => setStatus(s.id, 'Active')} style={{ padding: '5px 10px', background: '#D1FAE5', color: '#065F46', border: '1px solid #6EE7B7', borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Reinstate</button>
                             }

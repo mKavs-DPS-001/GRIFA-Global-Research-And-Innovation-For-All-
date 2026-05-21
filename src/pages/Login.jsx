@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, LogIn, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import MistBackground from '../components/ui/MistBackground';
 
 // Google "G" SVG icon
 const GoogleIcon = () => (
@@ -81,7 +82,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-offwhite flex items-center justify-center px-4 pt-20 pb-12">
+    <div className="min-h-screen flex items-center justify-center px-4 pt-20 pb-12 relative overflow-hidden">
+      <MistBackground />
       <Helmet>
         <title>{isSignUp ? 'Sign Up' : 'Login'} | GRIFA</title>
         <meta name="description" content="Login or create an account to access the GRIFA research platform." />
@@ -93,15 +95,15 @@ export default function Login() {
         className="w-full max-w-md"
        viewport={{ once: true }}>
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 relative z-10">
           <Link to="/" className="inline-block mb-6">
-            <span className="text-3xl font-playfair font-bold text-primary">GRIFA</span>
-            <span className="block text-[10px] tracking-[0.25em] uppercase text-accent font-medium mt-0.5">by DPSP</span>
+            <span className="text-3xl font-playfair font-bold text-white">GRIFA</span>
+            <span className="block text-[10px] tracking-[0.25em] uppercase text-accent-light font-medium mt-0.5">by DPSP</span>
           </Link>
-          <h1 className="text-2xl font-playfair font-bold text-primary mb-1">
+          <h1 className="text-2xl font-playfair font-bold text-white mb-1">
             {isSignUp ? 'Create your account' : 'Welcome back'}
           </h1>
-          <p className="text-neutral-gray text-sm">
+          <p className="text-white/70 text-sm">
             {isSignUp
               ? 'Join the GRIFA research community'
               : 'Sign in to access your research dashboard'}
@@ -109,7 +111,7 @@ export default function Login() {
         </div>
 
         {/* Card */}
-        <div className="bg-neutral-white rounded-3xl shadow-lg border border-neutral-border/50 p-8">
+        <div className="bg-neutral-white dark:bg-[#111827] rounded-3xl shadow-2xl border border-white/10 dark:border-blue-500/10 p-8 relative z-10">
 
           {/* Error */}
           {error && (
@@ -138,16 +140,16 @@ export default function Login() {
 
           {/* Divider */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 h-px bg-neutral-border" />
-            <span className="text-xs text-neutral-gray font-medium">or continue with email</span>
-            <div className="flex-1 h-px bg-neutral-border" />
+            <div className="flex-1 h-px bg-neutral-border dark:bg-white/10" />
+            <span className="text-xs text-neutral-gray dark:text-white/40 font-medium">or continue with email</span>
+            <div className="flex-1 h-px bg-neutral-border dark:bg-white/10" />
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
             <div>
-              <label className="block text-sm font-semibold text-primary mb-1.5">
+              <label className="block text-sm font-semibold text-primary dark:text-white/80 mb-1.5">
                 Email address
               </label>
               <div className="relative">
@@ -167,7 +169,7 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-primary mb-1.5">
+              <label className="block text-sm font-semibold text-primary dark:text-white/80 mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -242,8 +244,8 @@ export default function Login() {
         </div>
 
         {/* Back to home */}
-        <p className="text-center text-sm text-neutral-gray mt-6">
-          <Link to="/" className="hover:text-accent transition-colors">
+        <p className="text-center text-sm text-white/70 mt-6 relative z-10">
+          <Link to="/" className="hover:text-white transition-colors">
             ← Back to home
           </Link>
         </p>

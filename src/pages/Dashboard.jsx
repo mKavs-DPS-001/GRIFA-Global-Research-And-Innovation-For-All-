@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase/config';
 import {
   LayoutDashboard, GitBranch, Bookmark, BookOpen,
   CreditCard, Award, Users, BarChart2, Settings, LogOut,
@@ -63,11 +64,34 @@ export default function Dashboard() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const [active, setActive] = useState('overview');
+  const [planName, setPlanName] = useState('Loading Plan...');
 
   const avatarUrl = currentUser?.photoURL
     || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.email || 'U')}&background=1A56DB&color=fff&size=80`;
 
   const handleLogout = async () => { await logout(); navigate('/login'); };
+
+  useEffect(() => {
+    const fetchPlan = async () => {
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/enrollments/mine`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          // Assume the latest enrollment is the active one
+          setPlanName(data.data[0].plan?.name + ' Plan' || 'Explorer Plan');
+        } else {
+          setPlanName('Explorer Plan');
+        }
+      } catch (err) {
+        console.error('Failed to fetch plan:', err);
+        setPlanName('Explorer Plan');
+      }
+    };
+    if (currentUser) fetchPlan();
+  }, [currentUser]);
 
   return (
     <>
@@ -82,7 +106,7 @@ export default function Dashboard() {
             <p style={{ fontSize: 13, fontWeight: 700, color: '#0B1F3A', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {currentUser?.displayName || currentUser?.email?.split('@')[0]}
             </p>
-            <p style={{ fontSize: 11, color: '#94A3B8', margin: 0 }}>Analyst Plan</p>
+            <p style={{ fontSize: 11, color: '#94A3B8', margin: 0 }}>{planName}</p>
           </div>
         </div>
 

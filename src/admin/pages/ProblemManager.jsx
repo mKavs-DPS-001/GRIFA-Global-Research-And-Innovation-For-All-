@@ -1,14 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, X, Check, ToggleLeft, ToggleRight } from 'lucide-react';
-
-const INIT_PROBLEMS = [
-  { id: 'speed-breakers', title: 'Newtonian Fluid Alternative to Asphalt Speed Breakers', category: 'Physics', views: 1250, status: 'Active',   featured: true  },
-  { id: 'bus-stand',      title: 'Safe & Budget-Friendly Snacks at Bus Stands',           category: 'Business', views: 840,  status: 'Active',   featured: false },
-  { id: 'open-urination', title: 'Interdisciplinary Solutions to Open Urination',          category: 'Psychology', views: 2100, status: 'Active', featured: false },
-  { id: 'stray-dogs',     title: 'Humane Management of Urban Stray Dog Populations',       category: 'Zoology',    views: 3420, status: 'Active', featured: true  },
-  { id: 'language-barrier', title: 'Overcoming Medical Language Barriers in Rural Clinics', category: 'Medicine', views: 950, status: 'Draft',   featured: false },
-  { id: 'smart-farming',  title: 'Low-Cost Soil Moisture Sensors for Subsistence Farmers', category: 'Agriculture', views: 1800, status: 'Active', featured: false },
-];
+import { auth } from '../../firebase/config';
 
 const STATUS_STYLE = {
   Active:   { bg: '#D1FAE5', color: '#065F46' },
@@ -19,7 +11,8 @@ const STATUS_STYLE = {
 const BLANK = { title: '', description: '', category: '', tags: '' };
 
 export default function ProblemManager() {
-  const [problems, setProblems]   = useState(INIT_PROBLEMS);
+  const [problems, setProblems]   = useState([]);
+  const [loading, setLoading]     = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editModal, setEditModal] = useState(null); // problem being edited
   const [newData, setNewData]     = useState(BLANK);
@@ -27,30 +20,100 @@ export default function ProblemManager() {
   const [confirmId, setConfirmId] = useState(null);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  const getToken = async () => auth.currentUser?.getIdToken();
 
-  const archive = (id) => {
-    setProblems(p => p.map(pr => pr.id === id ? { ...pr, status: 'Archived' } : pr));
-    showToast('Problem archived.');
+  const fetchProblems = async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/admin/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const formatted = data.data.map(p => ({
+            ...p,
+            status: p.status ? (p.status.charAt(0).toUpperCase() + p.status.slice(1)) : 'Active'
+        }));
+        setProblems(formatted);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading problems');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleFeatured = (id) => {
-    setProblems(p => p.map(pr => pr.id === id ? { ...pr, featured: !pr.featured } : pr));
+  useEffect(() => { fetchProblems(); }, []);
+
+  const archive = async (id) => {
+    try {
+      const token = await getToken();
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'archived' })
+      });
+      setProblems(p => p.map(pr => pr.id === id ? { ...pr, status: 'Archived' } : pr));
+      showToast('Problem archived.');
+    } catch(e) { showToast('Error archiving problem'); }
   };
 
-  const deleteProblem = (id) => {
-    setProblems(p => p.filter(pr => pr.id !== id));
-    setConfirmId(null); showToast('Problem deleted.');
+  const toggleFeatured = async (id) => {
+    const problem = problems.find(p => p.id === id);
+    if (!problem) return;
+    try {
+      const token = await getToken();
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured: !problem.featured })
+      });
+      setProblems(p => p.map(pr => pr.id === id ? { ...pr, featured: !pr.featured } : pr));
+    } catch(e) { showToast('Error toggling featured'); }
   };
 
-  const saveEdit = () => {
-    setProblems(p => p.map(pr => pr.id === editModal.id ? { ...pr, title: editModal.title, category: editModal.category } : pr));
-    setEditModal(null); showToast('Problem updated.');
+  const deleteProblem = async (id) => {
+    try {
+      const token = await getToken();
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProblems(p => p.filter(pr => pr.id !== id));
+      setConfirmId(null); showToast('Problem deleted.');
+    } catch(e) { showToast('Error deleting problem'); }
   };
 
-  const addProblem = () => {
+  const saveEdit = async () => {
+    try {
+      const token = await getToken();
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${editModal.id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editModal.title, category: editModal.category })
+      });
+      setProblems(p => p.map(pr => pr.id === editModal.id ? { ...pr, title: editModal.title, category: editModal.category } : pr));
+      setEditModal(null); showToast('Problem updated.');
+    } catch(e) { showToast('Error saving problem'); }
+  };
+
+  const addProblem = async () => {
     if (!newData.title.trim()) return;
-    setProblems(p => [...p, { id: Date.now().toString(), ...newData, views: 0, status: 'Draft', featured: false }]);
-    setNewData(BLANK); setShowModal(false); showToast('Problem added.');
+    try {
+      const token = await getToken();
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newData, status: 'active', featured: false })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const serverDoc = { ...data.data, status: data.data.status.charAt(0).toUpperCase() + data.data.status.slice(1) };
+        setProblems(p => [serverDoc, ...p]);
+        setNewData(BLANK); setShowModal(false); showToast('Problem added.');
+      }
+    } catch(e) { showToast('Error adding problem'); }
   };
 
   const inp = (val, onChange, placeholder = '') => (
@@ -83,14 +146,15 @@ export default function ProblemManager() {
               </tr>
             </thead>
             <tbody>
-              {problems.map((pr, i) => {
+              {loading && <tr><td colSpan={7} style={{ padding: '20px', textAlign: 'center' }}>Loading problems...</td></tr>}
+              {!loading && problems.map((pr, i) => {
                 const sc = STATUS_STYLE[pr.status] || STATUS_STYLE.Active;
                 return (
                   <tr key={pr.id} style={{ borderTop: '1px solid #F1F5F9' }}>
                     <td style={{ padding: '12px 16px', fontSize: 12, color: '#94A3B8' }}>{i + 1}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: '#0B1F3A', maxWidth: 240 }}>{pr.title}</td>
                     <td style={{ padding: '12px 16px', fontSize: 12, color: '#64748B' }}>{pr.category}</td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#0B1F3A' }}>{pr.views.toLocaleString()}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#0B1F3A' }}>{pr.views?.toLocaleString() || 0}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{ background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{pr.status}</span>
                     </td>

@@ -1,9 +1,41 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Mail, MapPin, Phone, Send, MessageCircle } from 'lucide-react';
+import { Mail, MapPin, Phone, Send, MessageCircle, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Contact() {
+  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+  const [status, setStatus] = useState('idle'); // idle, loading, success, error
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleChange = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.message) return;
+    setStatus('loading');
+    setErrorMessage('');
+    
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatus('success');
+        setFormData({ name: '', email: '', subject: '', message: '' });
+      } else {
+        setStatus('error');
+        setErrorMessage(data.error || 'Failed to send message');
+      }
+    } catch(err) {
+      setStatus('error');
+      setErrorMessage('Network error, please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-neutral-offwhite pt-24 pb-20">
       <Helmet>
@@ -100,25 +132,35 @@ export default function Contact() {
           {/* Form */}
           <div className="bg-neutral-white p-8 lg:p-10 rounded-3xl shadow-sm border border-neutral-border/50">
             <h3 className="text-2xl font-playfair font-bold text-primary mb-6">Send a Message</h3>
-            <form className="space-y-5">
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              {status === 'success' && (
+                <div className="p-4 bg-green-50 text-green-700 rounded-xl flex items-center gap-3">
+                  <CheckCircle size={20} /> Message sent successfully! We will get back to you soon.
+                </div>
+              )}
+              {status === 'error' && (
+                <div className="p-4 bg-red-50 text-red-700 rounded-xl">
+                  {errorMessage}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-neutral-dark mb-1">Name</label>
-                <input type="text" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Your name" />
+                <input type="text" name="name" required value={formData.name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Your name" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-dark mb-1">Email</label>
-                <input type="email" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" placeholder="you@example.com" />
+                <input type="email" name="email" required value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" placeholder="you@example.com" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-dark mb-1">Subject</label>
-                <input type="text" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" placeholder="How can we help?" />
+                <input type="text" name="subject" value={formData.subject} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent" placeholder="How can we help?" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-dark mb-1">Message</label>
-                <textarea rows="5" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent resize-none" placeholder="Your message..."></textarea>
+                <textarea name="message" required value={formData.message} onChange={handleChange} rows="5" className="w-full px-4 py-3 rounded-xl bg-neutral-offwhite border border-neutral-border focus:outline-none focus:ring-2 focus:ring-accent resize-none" placeholder="Your message..."></textarea>
               </div>
-              <button type="button" className="w-full py-4 bg-accent text-white rounded-xl font-bold hover:bg-accent-hover transition-all flex justify-center items-center gap-2 shadow-md">
-                Send Message <Send size={18} />
+              <button type="submit" disabled={status === 'loading'} className="w-full py-4 bg-accent text-white rounded-xl font-bold hover:bg-accent-hover transition-all flex justify-center items-center gap-2 shadow-md disabled:bg-neutral-gray">
+                {status === 'loading' ? 'Sending...' : <><Send size={18} /> Send Message</>}
               </button>
             </form>
           </div>
