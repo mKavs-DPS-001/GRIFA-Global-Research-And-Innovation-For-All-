@@ -10,7 +10,7 @@ export default function Scientists() {
   const [selectedDiscipline, setSelectedDiscipline] = useState('All');
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists`)
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/scientists`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {

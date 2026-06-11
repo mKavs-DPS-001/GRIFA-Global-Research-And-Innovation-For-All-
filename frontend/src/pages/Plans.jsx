@@ -270,7 +270,7 @@ export default function Plans() {
       const token = await auth.currentUser.getIdToken();
       
       // 1. Create order
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/enrollments`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/enrollments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -294,7 +294,7 @@ export default function Plans() {
         handler: async function (response) {
           try {
             // 3. Verify payment
-            const verifyRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/enrollments/verify`, {
+            const verifyRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/enrollments/verify`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

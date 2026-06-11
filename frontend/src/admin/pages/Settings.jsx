@@ -231,7 +231,7 @@ export default function Settings() {
   React.useEffect(() => {
     const fetchMaintenance = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/settings/maintenance`);
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/settings/maintenance`);
         const data = await res.json();
         if (data.success && data.data.active) {
           const estimated = new Date(data.data.estimatedCompletion);
@@ -293,7 +293,7 @@ export default function Settings() {
     
     try {
       const token = await getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/settings/maintenance`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/settings/maintenance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -322,7 +322,7 @@ export default function Settings() {
   const handleCancelMaintenance = async () => {
     try {
       const token = await getToken();
-      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/settings/maintenance`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/settings/maintenance`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

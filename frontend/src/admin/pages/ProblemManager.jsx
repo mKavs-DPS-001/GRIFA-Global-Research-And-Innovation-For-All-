@@ -25,7 +25,7 @@ export default function ProblemManager() {
   const fetchProblems = async () => {
     try {
       const token = await getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/admin/all`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/problems/admin/all`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -49,7 +49,7 @@ export default function ProblemManager() {
   const archive = async (id) => {
     try {
       const token = await getToken();
-      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/problems/${id}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'archived' })
@@ -64,7 +64,7 @@ export default function ProblemManager() {
     if (!problem) return;
     try {
       const token = await getToken();
-      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/problems/${id}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ featured: !problem.featured })
@@ -76,7 +76,7 @@ export default function ProblemManager() {
   const deleteProblem = async (id) => {
     try {
       const token = await getToken();
-      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/problems/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -88,7 +88,7 @@ export default function ProblemManager() {
   const saveEdit = async () => {
     try {
       const token = await getToken();
-      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${editModal.id}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/problems/${editModal.id}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: editModal.title, category: editModal.category })
@@ -102,7 +102,7 @@ export default function ProblemManager() {
     if (!newData.title.trim()) return;
     try {
       const token = await getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/problems`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newData, status: 'active', featured: false })

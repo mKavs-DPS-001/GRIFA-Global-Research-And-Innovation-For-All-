@@ -15,7 +15,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || 'http://localhost:5173',
+  origin: process.env.ALLOWED_ORIGIN || 'https://grifa.bydps.com',
   credentials: true,
 }));
 app.use(express.json());

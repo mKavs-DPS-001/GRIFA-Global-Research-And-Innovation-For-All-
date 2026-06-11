@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const fetchMaintenance = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/settings/maintenance`);
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/settings/maintenance`);
         const data = await res.json();
         if (data.success && data.data.active) {
           const estimated = new Date(data.data.estimatedCompletion);

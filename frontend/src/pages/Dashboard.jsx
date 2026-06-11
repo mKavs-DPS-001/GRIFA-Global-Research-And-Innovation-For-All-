@@ -75,7 +75,7 @@ export default function Dashboard() {
     const fetchPlan = async () => {
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/enrollments/mine`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/enrollments/mine`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();

@@ -25,7 +25,7 @@ export default function ScientistManager() {
   const fetchScientists = async () => {
     try {
       const token = await getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists/admin`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/scientists/admin`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -43,7 +43,7 @@ export default function ScientistManager() {
   const setStatus = async (id, status) => {
     try {
       const token = await getToken();
-      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/scientists/${id}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: status.toLowerCase() })
@@ -57,7 +57,7 @@ export default function ScientistManager() {
   const saveEdit  = async (id) => {
     try {
       const token = await getToken();
-      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/scientists/${id}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(editData)
@@ -71,7 +71,7 @@ export default function ScientistManager() {
     if (!newData.name.trim()) return;
     try {
       const token = await getToken();
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/scientists`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/scientists`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newData, status: newData.status.toLowerCase() })

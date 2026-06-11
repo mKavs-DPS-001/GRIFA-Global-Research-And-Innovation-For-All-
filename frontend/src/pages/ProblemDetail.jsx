@@ -13,7 +13,7 @@ export default function ProblemDetail() {
   useEffect(() => {
     window.scrollTo(0, 0);
     setLoading(true);
-    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/problems/${id}`)
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/problems/${id}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {

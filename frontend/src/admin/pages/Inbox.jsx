@@ -90,7 +90,7 @@ export default function Inbox({ onUnreadChange }) {
     const fetchMessages = async () => {
       try {
         const token = await getToken();
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/v1/contact/admin/all`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://grifa.bydps.com'}/api/v1/contact/admin/all`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
